@@ -1,0 +1,10 @@
+{
+  "name": "appraisal-akhada",
+  "version": "1.0.0",
+  "description": "A corporate satire fighting game with online rooms",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" },
+  "license": "MIT"
+}
