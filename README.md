@@ -55,12 +55,25 @@ sends back button presses. Things to know:
 - One-on-one rooms hold two players, rumble rooms up to five. Rooms disappear when the host leaves. There is no matchmaking, accounts, or spectating.
 - Free hosting tiers often put idle servers to sleep, so the first visit after a quiet period can take a while to load.
 
+## Solo modes
+
+- **Arcade ladder**: seven fights in a row that get harder, with Hype.AI last. Finishing it unlocks Hype.AI, Envidia and Netflicks as playable fighters (stored in the browser).
+- **Daily challenge**: everyone gets the same fighter, opponent and rule twist for the day (UTC), on Hard. The twists are no blocking, double Hype, glass cannon, low gravity and 30-second quarters. Score is health and time left in each quarter you win, plus 1000 for the match; your best of the day goes on the leaderboard's daily table.
+
+## In the ring
+
+- **Taunt** (`T`, or the TAUNT button on a phone): a second of being rude, with a sing-song jingle and the company's line read aloud. Finish it for Hype; get hit and you get nothing.
+- **Specials** have a 2.5 second cooldown, shown as a small bar next to the Hype label.
+- **Stage hazards**: now and then a chair rolls across the floor or something drops from the ceiling. A warning sign shows first; they hit anyone and can be blocked.
+- **Sound**: each venue has a short looping tune, and an announcer calls the quarters, supers and knockouts using the browser's built-in voice (silent on browsers without one). Mute with `N`.
+
 ## Rumble
 
 **Rumble: 2 to 5 players** on the title screen opens a five-seat lobby on its own map, where the whole ring stays on screen.
 Seats start filled with CPUs. Add or remove CPUs, or press **Invite friends online** to get a room code and link; each friend who joins
 takes a seat from a CPU. Everyone fights everyone, knocked-out fighters stay out, and the last one standing wins
 (or whoever has the most health when the clock runs out). If a player drops mid-fight, a CPU takes over their fighter.
+Turn on **Teams** in the lobby for blue against red (seats 1, 3 and 5 against 2 and 4) with no friendly fire. Knocking someone out takes their Hype.
 
 ## Rank points and the leaderboard
 

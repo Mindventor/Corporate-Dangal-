@@ -21,5 +21,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms)),get=(ws,t)=>ws.q.filter(m=>m.t==
   tx(h,{t:"start",rum:1});await wait(50);g2.close();await wait(100);                    // walking out = last place, recorded straight away
   const lb2=await (await fetch("http://localhost:"+port+"/api/lb?id="+"c".repeat(32))).json();assert.strictEqual(lb2.me.g,2);
   assert.strictEqual(get(h,"left").n,2);
+  const day=new Date().toISOString().slice(0,10),post=b=>fetch("http://localhost:"+port+"/api/daily",{method:"POST",body:JSON.stringify(b)});
+  const d1=await (await post({id:"f".repeat(32),name:"Daily Dev",day,score:1800})).json();assert.strictEqual(d1.best,1800);     // daily score is kept
+  const d2=await (await post({id:"f".repeat(32),name:"Daily Dev",day,score:900})).json();assert.strictEqual(d2.best,1800);      // a worse run does not replace it
+  assert.strictEqual((await post({id:"f".repeat(32),day,score:99999})).status,400);                                              // impossible scores are refused
+  const lb3=await (await fetch("http://localhost:"+port+"/api/lb")).json();assert.strictEqual(lb3.daily[0].n,"Daily Dev");assert.strictEqual(lb3.players,3); // daily-only players stay off the rank table
   console.log("rank test OK");process.exit(0);
 })().catch(e=>{console.error(e);process.exit(1);});

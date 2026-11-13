@@ -13,6 +13,24 @@ const server = http.createServer((req, res) => {
   let p;
   try { p = decodeURIComponent(req.url.split("?")[0]); } catch (e) { res.writeHead(400); return res.end("Bad request"); }
   if (p === "/healthz") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("ok"); }
+  if (p === "/api/daily" && req.method === "POST") { // daily challenge score. ponytail: reported by the browser, so it can be faked; fine for a joke board.
+    let body = "";
+    req.on("data", (c) => { body += c; if (body.length > 2048) req.destroy(); });
+    req.on("end", () => {
+      let m; try { m = JSON.parse(body); } catch (e) { m = null; }
+      const day = new Date().toISOString().slice(0, 10);
+      if (!m || typeof m.id !== "string" || !/^[a-f0-9]{32}$/.test(m.id) || m.day !== day || !Number.isInteger(m.score) || m.score < 0 || m.score > 4000) { res.writeHead(400); return res.end("Bad request"); }
+      const pl = ranks[m.id] || (ranks[m.id] = { n: "Player", rp: 0, g: 0, w: 0, s: 0 });
+      pl.n = cleanName(m.name);
+      if (pl.dd !== day) { pl.dd = day; pl.ds = 0; }
+      if (m.score > pl.ds) pl.ds = m.score;
+      save();
+      const today = Object.keys(ranks).filter((k) => ranks[k].dd === day).sort((a, b) => ranks[b].ds - ranks[a].ds);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ best: pl.ds, rank: today.indexOf(m.id) + 1, n: today.length }));
+    });
+    return;
+  }
   if (p === "/api/lb") { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(leaderboard(new URL(req.url, "http://x").searchParams.get("id")))); }
   if (p === "/") p = "/index.html";
   const file = path.normalize(path.join(PUB, p));
@@ -49,11 +67,14 @@ function award(id, name, place, n) {
   save();
   return { t: "rp", d, rp: p.rp, s: p.s };
 }
+const cleanName = (n) => String(n || "").replace(/[^\w .\-]/g, "").trim().slice(0, 14) || "Player";
 function leaderboard(id) {
-  const all = Object.keys(ranks).sort((a, b) => ranks[b].rp - ranks[a].rp || ranks[b].w - ranks[a].w);
+  const day = new Date().toISOString().slice(0, 10);
+  const daily = Object.keys(ranks).filter((k) => ranks[k].dd === day).sort((a, b) => ranks[b].ds - ranks[a].ds).slice(0, 10).map((k) => ({ n: ranks[k].n, s: ranks[k].ds, me: k === id }));
+  const all = Object.keys(ranks).filter((k) => ranks[k].g > 0).sort((a, b) => ranks[b].rp - ranks[a].rp || ranks[b].w - ranks[a].w);
   const row = (k) => ({ n: ranks[k].n, rp: ranks[k].rp, g: ranks[k].g, w: ranks[k].w });
   const at = id ? all.indexOf(id) : -1;
-  return { top: all.slice(0, 50).map(row), me: at < 0 ? null : Object.assign({ rank: at + 1 }, row(all[at])), players: all.length };
+  return { top: all.slice(0, 50).map(row), me: at < 0 ? null : Object.assign({ rank: at + 1 }, row(all[at])), players: all.length, daily };
 }
 // ponytail: results are reported by the host's browser, so a modified client can lie. Fine for friends; needs a server-run match to be cheat-proof.
 function startMatch(r) {
@@ -118,7 +139,7 @@ wss.on("connection", (ws) => {
     if (m.t === "ping") return;
     if (m.t === "hello") { // who is this, for rank points
       if (typeof m.id === "string" && /^[a-f0-9]{32}$/.test(m.id)) ws.pid = m.id;
-      ws.pname = String(m.name || "").replace(/[^\w .\-]/g, "").trim().slice(0, 14) || "Player";
+      ws.pname = cleanName(m.name);
       const p = ranks[ws.pid];
       return send(ws, { t: "me", rp: p ? p.rp : 0, g: p ? p.g : 0, w: p ? p.w : 0 });
     }
