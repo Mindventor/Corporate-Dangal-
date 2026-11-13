@@ -92,8 +92,6 @@ kbd{font-family:var(--mono);font-size:12px;font-weight:700;background:var(--ink)
 .card.sel,.card.sel:hover{border-color:var(--hi);box-shadow:0 0 0 2px var(--hi)}
 .card.other{border-color:var(--lanyard)}
 .card[disabled]{opacity:.45;cursor:not-allowed}
-.card.lock canvas{filter:grayscale(1) brightness(.45)}
-.card.lock:after{content:"LOCKED";position:absolute;top:4px;left:4px;font:700 10px var(--mono);background:var(--lanyard);color:var(--ink);padding:1px 5px;border-radius:3px}
 .idcard{background:var(--paper);color:var(--ink);border-radius:6px;padding:18px 20px;box-shadow:8px 8px 0 #0006;position:relative}
 .idcard:before{content:"";position:absolute;top:-12px;left:50%;width:54px;height:12px;margin-left:-27px;background:var(--lanyard);border-radius:3px 3px 0 0}
 .idcard .co{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#5b6078}
@@ -285,6 +283,7 @@ kbd{font-family:var(--mono);font-size:12px;font-weight:700;background:var(--ink)
       </div>
       <div class="opts">
         <div class="opt" id="stageOpt"><span class="eyebrow">Venue</span><div class="chips" id="stageChips"></div></div>
+        <div class="opt"><span class="eyebrow">Stage hazards</span><div class="chips"><button class="chip" id="hazBtn" type="button">On</button></div></div>
         <div class="opt" id="diffOpt"><span class="eyebrow">CPU difficulty</span><div class="chips" id="diffChips"></div></div>
       </div>
       <button class="btn" id="startBtn" type="button">Start the fight</button>
@@ -474,13 +473,13 @@ const QUIPS=["As per my last email","Let's take this offline","Circle back","Gen
 const TICKER=["MARKETS: everything is down except the one you sold","Analysts upgrade this fight to overweight","Quarterly guidance: cautious, same as last quarter","Layoffs rebranded as talent density","AI mentioned 47 times on the earnings call","Bench strength at an all-time high","CEO announces return to office, from a yacht","Free cash flow spotted near the cafeteria","Shareholders demand a rematch"];
 
 /* ---------- Settings ---------- */
-const S={mode:1,p:[0,-1],stage:0,diff:1,slot:0,muted:false,seats:[],teams:false,lad:null,daily:null}; // mode: 1 vs CPU, 2 same keyboard, 3 online 1v1, 4 rumble
+const S={mode:1,p:[0,-1],stage:0,diff:1,slot:0,muted:false,seats:[],teams:false,haz:true,lad:null,daily:null}; // mode: 1 vs CPU, 2 same keyboard, 3 online 1v1, 4 rumble
 const PCOL=["#5ab0ff","#ff5a36","#ffe14a","#7dffb0","#d59bff"],TCOL=["#5ab0ff","#ff5a36"];let NF=2;
 const NET={ws:null,role:null,code:"",peer:false,evts:[],idx:0,inq:{},lastMask:-1,snapT:0};
 let screen="title",paused=false,game=null;
 /* Player identity and rank: a random id kept in this browser, plus a display name. No account, no password. */
 const LS=(k,v)=>{ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} return null; };
-const PL={id:LS("cd_id")||"",name:LS("cd_name")||"",rp:null,unl:LS("cd_unlock")==="1"};
+const PL={id:LS("cd_id")||"",name:LS("cd_name")||"",rp:null};
 if(!/^[a-f0-9]{32}$/.test(PL.id)){ PL.id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");LS("cd_id",PL.id); }
 const TIERS=[[0,"Intern"],[100,"Trainee"],[250,"Associate"],[450,"Senior Associate"],[700,"Team Lead"],[1000,"Manager"],[1400,"Director"],[1900,"Vice President"],[2500,"CXO"]];
 const tierOf=rp=>{ let t=TIERS[0];TIERS.forEach(x=>{ if(rp>=x[0]) t=x; });return t[1]; };
@@ -807,10 +806,8 @@ const WL={kettle:"Resource allocated.",dome:"See you Monday. And Saturday.",soap
   visor:"You have been poked.",bag:"Sale ends now.",tomato:"Delivered in ten minutes.",sigma:"The numbers do not lie.",gpu:"Sold out. Again.",tv:"Next episode in five.",phone:"Unfolded.",chip:"I will take it from here."};
 const WLX=["Funding secured.","Valuation up.","Unit economics: positive.","We are hiring.","Runway extended.","Filing for IPO."];
 CH.forEach((c,i)=>{ c.wl=c.ext?WLX[i%WLX.length]:WL[c.head]; });
-/* Solo modes. Arcade ladder: seven fights that get harder, Hype.AI last; finishing it unlocks three fighters.
+/* Solo modes. Arcade ladder: seven fights that get harder, Hype.AI last.
    Daily challenge: the same fighter, opponent and rule twist for everyone on a given (UTC) day, scored and posted to its own board. */
-const LOCKS=["Hype.AI","Envidia","Netflicks"].map(n=>CH.findIndex(c=>c.name===n));
-const locked=i=>!PL.unl&&LOCKS.includes(i);
 const LADN=7,LADDIFF=[0,0,1,1,1,2,2];
 const TWISTS={noblock:["No blocking","Nobody can guard. Hit first."],hype2:["Double Hype","The meter fills twice as fast. Expect supers."],glass:["Glass cannon","Every hit does 60% more damage."],
   moon:["Low gravity","Everyone floats, and juggles go on and on."],rush:["Half-day","Quarters last 30 seconds."]};
@@ -1858,7 +1855,7 @@ function newGame(){
     if(p2<0){ const pool=CH.map((c,i)=>i).filter(i=>i!==S.p[0]&&!CH[i].boss&&i<CORE); p2=pick(pool); }
     f=[mkFighter(0,S.p[0],false),mkFighter(1,p2,S.mode===1)]; }
   const teams=rum&&S.teams;f.forEach((x,i)=>{ x.team=teams?slots[i]%2:-1; });
-  game={f,slots,rum,teams,haz:null,hazT:8,tw:S.daily?S.daily.tw:"",sc:0,out:[],lastKo:-1,projs:[],rains:[],scr:null,scrHit:-1,parts:[],floats:[],pid:0,
+  game={f,slots,rum,teams,hazOn:S.haz||!!S.daily,haz:null,hazT:8,tw:S.daily?S.daily.tw:"",sc:0,out:[],lastKo:-1,projs:[],rains:[],scr:null,scrHit:-1,parts:[],floats:[],pid:0,
     time:rum?99:S.daily&&S.daily.tw==="rush"?30:60,phase:"intro",pt:0,stop:0,cine:0,cineWho:0,slow:0,shake:0,flash:0,banner:null,round:1,wins:f.map(()=>0),winner:-1,overTxt:"",timeout:false,posed:false,
     cam:{x:SW/2,z:rum?W/SW:1.12},tm:0,tick:0};
 }
@@ -1929,7 +1926,7 @@ function update(rdt){
   const dd=Math.abs(F[1].x-F[0].x);
   if(F.length===2&&dd>MAXD){ const ex=(dd-MAXD)/2,sg=F[1].x>F[0].x?1:-1;F[0].x+=ex*sg;F[1].x-=ex*sg; }
   stepProjs(dt);
-  if(g.phase==="play") stepHaz(dt); else g.haz=null;
+  if(g.phase==="play"&&g.hazOn) stepHaz(dt); else g.haz=null;
   if(g.phase==="play"){
     g.time-=dt;
     if(g.time<=0){ g.time=0; const w=g.rum?rumOrder()[0]:Math.abs(F[0].hp-F[1].hp)<.5?-1:(F[0].hp>F[1].hp?0:1); endRound(w,"MARKET CLOSED",true); fx("snd","bell"); }
@@ -2297,10 +2294,10 @@ function netMsg(m){
     case "joined": NET.role="guest";NET.code=m.code;NET.peer=true;NET.idx=m.n||1;
       if(m.max>2){ S.mode=4;S.seats=[0,1,2,3,4].map(()=>({k:""}));if(S.p[0]<0)S.p[0]=0;netSend({t:"pick",ci:S.p[0]});refreshSelect();show("select");break; }
       S.mode=3;S.p=[0,1];S.slot=1;refreshSelect();show("select"); break;
-    case "lob": if(NET.role==="guest"&&S.mode===4){ S.seats=m.seats;S.diff=m.diff|0;S.teams=!!m.teams;if(screen==="select")refreshSelect(); } break;
+    case "lob": if(NET.role==="guest"&&S.mode===4){ S.seats=m.seats;S.diff=m.diff|0;S.teams=!!m.teams;S.haz=m.hz!==false;if(screen==="select")refreshSelect(); } break;
     case "peer": NET.peer=true;
       if(S.mode===4){ S.seats[m.n]={k:"h",ci:0,nm:String(m.name||"Player "+(m.n+1))};lob();if(screen==="select")refreshSelect();break; }S.mode=3;S.p=[S.p[0]>=0?S.p[0]:0,1];S.slot=0;refreshSelect();show("select");
-      netSend({t:"pick",slot:0,ci:S.p[0]});netSend({t:"stage",i:S.stage}); break;
+      netSend({t:"pick",slot:0,ci:S.p[0]});netSend({t:"stage",i:S.stage,hz:S.haz}); break;
     case "me": PL.rp=m.rp;myRank(); break;
     case "rp": PL.rp=m.rp;NET.rpMsg=m;myRank();if(screen==="result") rpRow(); break;
     case "err": if(S.mode===4&&screen==="select") $("selNote").textContent=m.m||"Something went wrong.";
@@ -2315,7 +2312,7 @@ function netMsg(m){
       else{ netClose();show("online");$("roomBox").hidden=true;netStatus("The host closed the room.",true); } break; }
     case "pick": if(S.mode===4){ if(NET.role==="host"&&S.seats[m.n]&&S.seats[m.n].k==="h"){ S.seats[m.n].ci=clamp(m.ci|0,0,CH.length-1);lob();if(screen==="select")refreshSelect(); } }
       else if(m.slot===0||m.slot===1){ S.p[m.slot]=clamp(m.ci|0,0,CH.length-1);refreshSelect(); } break;
-    case "stage": S.stage=clamp(m.i|0,0,2);refreshSelect(); break;
+    case "stage": S.stage=clamp(m.i|0,0,2);if(m.hz!=null)S.haz=!!m.hz;refreshSelect(); break;
     case "start": if(NET.role==="guest"){ if(m.rum){ S.mode=4;S.seats=m.seats;S.teams=!!m.teams; } else{ S.p=[m.p[0]|0,m.p[1]|0];S.stage=m.stage|0; } startFight(true); } break;
     case "sel": if(NET.role==="guest"){ game=null;S.slot=1;refreshSelect();show("select"); } break;
     case "i": if(NET.role==="host"){ const h=m.h|0,q=NET.inq[m.n||1]||(NET.inq[m.n||1]={red:{}});q.rin={l:h&1,r:h&2,d:h&4,uh:h&8};(m.e||"").split("").forEach(ch=>{q.red[ch]=1;}); } break;
@@ -2349,7 +2346,7 @@ function openRanks(){
     me_.textContent=d.me?"You are #"+d.me.rank+" of "+d.players+": "+tierOf(d.me.rp)+", "+d.me.rp+" RP, "+d.me.w+" wins in "+d.me.g+" matches.":"You are unranked. Play an online match or rumble against other people to get on the board.";
   }).catch(()=>{ me_.textContent="The leaderboard only works on a hosted copy of the game with server.js running.";me_.classList.add("bad"); });
 }
-function lob(){ if(NET.role==="host"&&S.mode===4) netSend({t:"lob",seats:S.seats,diff:S.diff,teams:S.teams}); } // host tells everyone who is in which seat
+function lob(){ if(NET.role==="host"&&S.mode===4) netSend({t:"lob",seats:S.seats,diff:S.diff,teams:S.teams,hz:S.haz}); } // host tells everyone who is in which seat
 function remoteInput(n){
   const q=NET.inq[n]||{},h=q.rin||{},e=q.red||{};q.red={};
   return {l:!!h.l,r:!!h.r,d:!!h.d,uh:!!h.uh,u:e.u,p:e.p,k:e.k,g:e.g,s:e.s,dl:e.a,dr:e.b,sp:e.x,tn:e.t};
@@ -2425,8 +2422,8 @@ function showResult(){
   }
   else if(S.lad){ const L=S.lad,won=w===0,fin=L.n===LADN-1;
     if(won&&fin){ head.textContent="Chairman of everything";head.className="win";line.textContent=F[0].ch.name+" climbed the whole ladder and popped the bubble. \u201c"+F[0].ch.wl+"\u201d";
-      note.textContent=PL.unl?"Analyst note: \"There is nobody left to acquire.\"":"Unlocked: Hype.AI, Envidia and Netflicks are now playable.";
-      PL.unl=true;LS("cd_unlock","1");L.done=true;hideRe=true;$("reselectBtn").textContent="Back to fighter select"; }
+      note.textContent="Analyst note: \"There is nobody left to acquire.\"";
+      L.done=true;hideRe=true;$("reselectBtn").textContent="Back to fighter select"; }
     else if(won){ head.textContent="Fight "+(L.n+1)+" of "+LADN+" won";head.className="win";line.textContent="Next up: "+CH[L.opp[L.n+1]].name+(L.n+1===LADN-1?", the final boss.":".");
       note.textContent="Analyst note: \"Momentum is strong. So is the next one.\"";$("rematchBtn").textContent="Next fight";$("reselectBtn").textContent="Leave the ladder"; }
     else{ head.textContent="Acquired";head.className="lose";line.textContent=F[1].ch.name+" stopped your climb at fight "+(L.n+1)+" of "+LADN+".";
@@ -2479,9 +2476,7 @@ function buildSelect(){
     b.addEventListener("click",()=>{ if(online()&&NET.role!=="host") return; S[key]=i; if(online()&&key==="stage") netSend({t:"stage",i}); lob(); refreshSelect(); });host.append(b);}); };
   mk($("stageChips"),STAGES,"stage");mk($("diffChips"),DIFFS,"diff");
 }
-function pickCh(i){ initAudio();
-  if(locked(i)){ SND.block();dossier(i);return; }
-  SND.pickc();
+function pickCh(i){ initAudio();SND.pickc();
   if(S.mode===4){ S.p[0]=i;const st=S.seats[NET.idx|0]; if(st) st.ci=i; if(NET.role==="guest") netSend({t:"pick",ci:i}); else lob(); }
   else if(online()){ const sl=me();S.p[sl]=i;netSend({t:"pick",slot:sl,ci:i}); }
   else{ S.p[S.slot]=i; if(S.slot===0&&!S.lad) S.slot=1; }
@@ -2509,7 +2504,6 @@ function dossier(i){
     if(d[2]){ const cn=document.createElement("canvas");cn.width=cn.height=56;cn.className="ico";const x=cn.getContext("2d");x.translate(28,28);x.scale(2,2);drawIcon(x,d[2],24,c.objCol,c.shirt);b.prepend(cn); }
     dl.append(a,b);});
   if(c.boss){ add("p","fine","Final boss. Bigger and hits harder than everyone else.").style.color="#5b6078"; }
-  if(locked(i)){ add("p","fine","Locked. Beat the arcade ladder to unlock.").style.color="#c0281a"; }
 }
 function openRumble(){ initAudio();netClose();endSolo();S.mode=4;if(S.p[0]<0)S.p[0]=0;
   const cpu=()=>({k:"c",ci:pick(CH.map((c,i)=>i).filter(i=>i<CORE&&!CH[i].boss&&i!==S.p[0]))});
@@ -2560,11 +2554,11 @@ function refreshSelect(show_){
   $("backBtn").textContent=on?"Leave room":"Back to title";
   $("startBtn").textContent=lad?"Start the ladder":"Start the fight";
   if(lad){ $("selTitle").textContent="Arcade ladder: pick your company";$("diffOpt").style.display="none";
-    $("selNote").textContent="Seven fights in a row, each harder than the last, with Hype.AI waiting at the top."+(PL.unl?"":" Finish it to unlock Hype.AI, Envidia and Netflicks."); }
+    $("selNote").textContent="Seven fights in a row, each harder than the last, with Hype.AI waiting at the top."; }
   dossier(show_!=null?show_:(S.p[S.slot]>=0?S.p[S.slot]:S.p[0]));
 }
 function moreCard(){
-  document.querySelectorAll("#cards .card[data-i]").forEach(b=>b.classList.toggle("lock",locked(+b.dataset.i)));
+  { const b=$("hazBtn");b.textContent=S.haz?"On":"Off";b.classList.toggle("on",S.haz);b.disabled=NET.role==="guest"; }
   { const b=$("moreCard"),x=S.p[S.slot]>=CORE?S.p[S.slot]:-1,cn=b.firstChild,c=cn.getContext("2d");
     b.classList.toggle("sel",x>=0);b.lastChild.textContent=x>=0?CH[x].name:"More companies";
     if(x>=0) portrait(cn,x); else{ c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,120,104);c.font="400 22px 'Bowlby One',Impact,sans-serif";c.textAlign="center";c.fillStyle="#ffe14a";c.fillText("+"+(CH.length-CORE),60,50);
@@ -2642,6 +2636,7 @@ $("plName").addEventListener("input",e=>{ PL.name=e.target.value.trim().slice(0,
 $("cpuAdd").addEventListener("click",()=>{ const k=S.seats.findIndex(x=>!x.k); if(k<0) return;
   S.seats[k]={k:"c",ci:pick(CH.map((c,i)=>i).filter(i=>i<CORE&&!CH[i].boss))};lob();refreshSelect(); });
 $("cpuDel").addEventListener("click",()=>{ let k=-1;S.seats.forEach((x,i)=>{ if(x.k==="c") k=i; }); if(k<0) return; S.seats[k]={k:""};lob();refreshSelect(); });
+$("hazBtn").addEventListener("click",()=>{ if(NET.role==="guest") return; S.haz=!S.haz; if(S.mode===3) netSend({t:"stage",i:S.stage,hz:S.haz}); lob();refreshSelect(); });
 $("teamBtn").addEventListener("click",()=>{ S.teams=!S.teams;lob();refreshSelect(); });
 $("rumInvite").addEventListener("click",()=>netOpen(()=>netSend({t:"host",max:5})));
 $("rumCopy").addEventListener("click",()=>{ const t=location.origin+location.pathname+"?room="+NET.code;

@@ -57,14 +57,14 @@ sends back button presses. Things to know:
 
 ## Solo modes
 
-- **Arcade ladder**: seven fights in a row that get harder, with Hype.AI last. Finishing it unlocks Hype.AI, Envidia and Netflicks as playable fighters (stored in the browser).
+- **Arcade ladder**: seven fights in a row that get harder, with Hype.AI last.
 - **Daily challenge**: everyone gets the same fighter, opponent and rule twist for the day (UTC), on Hard. The twists are no blocking, double Hype, glass cannon, low gravity and 30-second quarters. Score is health and time left in each quarter you win, plus 1000 for the match; your best of the day goes on the leaderboard's daily table.
 
 ## In the ring
 
 - **Taunt** (`T`, or the TAUNT button on a phone): a second of being rude, with a sing-song jingle and the company's line read aloud. Finish it for Hype; get hit and you get nothing.
 - **Specials** have a 2.5 second cooldown, shown as a small bar next to the Hype label.
-- **Stage hazards**: now and then a chair rolls across the floor or something drops from the ceiling. A warning sign shows first; they hit anyone and can be blocked.
+- **Stage hazards**: now and then a chair rolls across the floor or something drops from the ceiling. A warning sign shows first; they hit anyone and can be blocked. Turn them off with the **Stage hazards** switch on the fighter select screen (the host decides online; the daily challenge always has them).
 - **Sound**: each venue has a short looping tune, and an announcer calls the quarters, supers and knockouts using the browser's built-in voice (silent on browsers without one). Mute with `N`.
 
 ## Rumble
