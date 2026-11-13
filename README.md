@@ -1,14 +1,16 @@
 # Corporate Dangal
 
 A parody fighting game where made-up tech and IT companies settle it in the ring.
-Single player against the CPU, two players on one keyboard, or two players online with a room code.
+Single player against the CPU, two players on one keyboard, two players online with a room code, or a rumble for up to five.
+Online matches earn rank points on a shared leaderboard, and a directory of extra companies sits behind the main roster.
 
 ## What is in this folder
 
 | File | What it does |
 | --- | --- |
 | `public/index.html` | The whole game: art, physics, moves, netcode. One file, no build step. |
-| `server.js` | Serves the game and relays online matches between two players. |
+| `server.js` | Serves the game, relays online matches (2 to 5 players), keeps rank points and the leaderboard. |
+| `test/server.test.js` | Checks the room relay and the rank point rules against a running server. |
 | `package.json` | Lists the single dependency (`ws`, for WebSockets). |
 
 ## Run it on your own computer
@@ -50,14 +52,44 @@ sends back button presses. Things to know:
 
 - The guest feels a little input delay that grows with distance between the two players.
 - The host should keep the game tab in front. Browsers pause background tabs, which freezes the match for both players.
-- Rooms hold exactly two players and disappear when the host leaves. There is no matchmaking, accounts, or spectating.
+- One-on-one rooms hold two players, rumble rooms up to five. Rooms disappear when the host leaves. There is no matchmaking, accounts, or spectating.
 - Free hosting tiers often put idle servers to sleep, so the first visit after a quiet period can take a while to load.
+
+## Rumble
+
+**Rumble: 2 to 5 players** on the title screen opens a five-seat lobby on its own map, where the whole ring stays on screen.
+Seats start filled with CPUs. Add or remove CPUs, or press **Invite friends online** to get a room code and link; each friend who joins
+takes a seat from a CPU. Everyone fights everyone, knocked-out fighters stay out, and the last one standing wins
+(or whoever has the most health when the clock runs out). If a player drops mid-fight, a CPU takes over their fighter.
+
+## Rank points and the leaderboard
+
+Online matches between two or more people earn rank points (RP). CPU fighters never count.
+
+| Players | 1st | 2nd | 3rd | 4th | 5th |
+| --- | --- | --- | --- | --- | --- |
+| 2 | +25 | -15 | | | |
+| 3 | +30 | +5 | -15 | | |
+| 4 | +35 | +15 | -5 | -15 | |
+| 5 | +40 | +20 | +5 | -5 | -15 |
+
+- From the third win in a row, each win is worth 5 more.
+- Under 100 RP (Intern) you never lose points, and RP never drops below zero.
+- Leaving mid-match counts as finishing last. A match shorter than 15 seconds does not count.
+- Titles: Intern 0, Trainee 100, Associate 250, Senior Associate 450, Team Lead 700, Manager 1000, Director 1400, Vice President 1900, CXO 2500.
+
+A player is a random id stored in their browser plus the name they type on the Play online screen. There are no accounts or passwords,
+so clearing browser data starts a new player. Results are reported by the host's browser, which is fine among friends but not cheat-proof.
+
+Rank points are saved in `data/ranks.json`. Many hosts wipe the app folder on every deploy or restart: attach a persistent disk and
+set the `DATA_DIR` environment variable to it, or the leaderboard will reset.
 
 ## Changing things
 
 Everything lives in the `<script>` at the bottom of `public/index.html`:
 
 - `CH` is the roster: names, colours, head shape, thrown object, super.
+- `CO` is the company directory: one row per extra company (name, sector, look, special, super). Add a row to add a company.
 - `ATK` is the move list: startup, active and recovery times, damage, hitboxes, poses.
 - `TICKER` and `QUIPS` are the joke text.
 
