@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Corporate Dangal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -173,6 +173,9 @@ kbd{font-family:var(--mono);font-size:12px;font-weight:700;background:var(--ink)
 .pad button{grid-column:span 2;background:#ffffff26;border:2px solid #ffffff66;border-radius:999px;font-family:var(--mono);font-weight:700;font-size:11px;color:#fff;touch-action:none;padding:0}
 .pad .big{grid-column:span 3;font-size:15px;background:#ffffff38}
 .pad button.dn{background:var(--hi);color:var(--ink)}
+/* zoom lock on phones: menus can still scroll, nothing can pinch or double-tap zoom */
+.touch,.touch .screen,.touch .screen button,.touch #dir,.touch #dir button{touch-action:pan-x pan-y}
+.touch #app{touch-action:none}
 .touch #pauseBtn{font-size:13px;padding:7px 14px;top:22%}
 .touch #btn2p,.memo tr.tonly{display:none}
 .touch .memo tr.tonly{display:grid}
@@ -549,6 +552,11 @@ if(TOUCH) document.body.classList.add("touch");
   joy.addEventListener("pointermove",move);joy.addEventListener("pointerup",end);joy.addEventListener("pointercancel",end);
 }
 addEventListener("contextmenu",e=>{ if(TOUCH) e.preventDefault(); });
+if(TOUCH){ // iOS Safari ignores the viewport's no-zoom setting, so block the gestures themselves
+  ["gesturestart","gesturechange","gestureend"].forEach(n=>document.addEventListener(n,e=>e.preventDefault(),{passive:false}));
+  document.addEventListener("touchmove",e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+  document.addEventListener("dblclick",e=>e.preventDefault());
+}
 
 /* ---------- Moves ---------- */
 const ATK={
