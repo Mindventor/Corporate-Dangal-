@@ -90,6 +90,7 @@ Everything lives in the `<script>` at the bottom of `public/index.html`:
 
 - `CH` is the roster: names, colours, head shape, thrown object, super.
 - `CO` is the company directory: one row per extra company (name, sector, look, special, super). Add a row to add a company.
+- `ICONS` is the icon set used for thrown objects, supers and specials. `SP(...)` defines each special; the comment above it lists the effects a special can have (teleport, swap, pull, freeze, heal, steal Hype, trap, and so on).
 - `ATK` is the move list: startup, active and recovery times, damage, hitboxes, poses.
 - `TICKER` and `QUIPS` are the joke text.
 
